@@ -233,3 +233,16 @@ kubelet also allows kubernetes so scale Horizontally by adding or removing conta
 registering the node with the cluster, when a new Worker Node joins the cluster, kubelets helps
 
 ## kube-proxy
+
+- kube-proxy is a Kubernetes agent installed on every node in the cluster. It monitors changes to Service Objects and their endpoints and translates them into actual networks rules inside the node.
+- Kube-proxy usually runs in your cluster as a DaemonSet(controller that a node runs a copy of a pod)
+
+
+
+What is Kube-Proxy
+
+Kube-Proxy is a Kubernetes agent installed on every node in the cluster. It monitors changes to Service objects and their endpoints and translates them into actual network rules inside the node.
+
+Kube-Proxy usually runs in your cluster as a DaemonSet, but it can also be installed directly as a Linux process on the node.
+
+If you use kubeadm, it will install Kube-Proxy as a DaemonSet. If you manually install the cluster components using official Linux tarball binaries, it will run directly as a process on the node.
