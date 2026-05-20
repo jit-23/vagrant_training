@@ -1,0 +1,49 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+	#---------------------------------------------------------------
+	config.vm.define "Server" do |server|
+		server.vm.box = "generic/debian12"
+  		server.vm.box_version = "4.3.12"
+		server.vm.hostname = "k3s-server"
+		server.vm.synced_folder ".", "/vagrant", disabled: true
+		server.vm.boot_timeout = 300
+		server.vm.network "private_network", ip: "192.168.56.110"
+
+		server.vm.provider "virtualbox" do |vb|
+			vb.name = "Server"
+			vb.memory = 1024
+			vb.cpus = 1
+			vb.gui = true
+		end
+		server.vm.provision "shell" , path: "Server_Script.sh"
+	end
+	#---------------------------------------------------------------
+	config.vm.define "ServerWorker" do |server_worker|
+		server_worker.vm.box = "generic/debian12"
+		server_worker.vm.box_version = "4.3.12"
+		server_worker.vm.hostname = "k3s-agent"
+		server_worker.vm.synced_folder ".", "/vagrant", disabled: true
+		server_worker.vm.boot_timeout = 300
+		server_worker.vm.network "private_network", ip: "192.168.56.111"
+		
+		
+		
+		server_worker.vm.provider "virtualbox" do |vb|
+			vb.name = "ServerWorker"
+			vb.memory = 1024
+			vb.cpus = 1
+			vb.gui = true
+		end
+		server_worker.vm.provision "shell" , path: "Server_Worker_Script.sh"
+	end
+	#---------------------------------------------------------------
+  	# provider allow features of the defined provider(vvirtualbox)
+	# in this case im allowing the gui of virtualbox to be shown when the vm is running
+end
+
