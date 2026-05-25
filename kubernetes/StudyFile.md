@@ -372,9 +372,59 @@ K3s is separated by 2 main nodes.
 
 The K3s Server(Master Node)  and the K3s Agent(Worker Node)
 
-K3s server also has:
-- API server
-- Scheduler
-- Controller Manager
 
-- It does not have a etcd, instead it has SQLite, a way simpler 
+K3s server and the K8s master node are very similar:
+K3s has 3 diferent components if we compare it with K8s
+*Like*:
+- Kine
+- Tunnel Proxy
+- Flanel
+
+## KINE:
+
+- It does not have etcd; instead it uses SQLite, a much simpler relational database. However, since etcd comunicates using **etcd gRPC API** while SQLite uses **SQL**, Kine acts as the intermediary to translate everything so that SQLite receives the correct data.
+- Kine is an etcd shim built into K3s. a Shim in computer science is a small library that intercepts requests and modifies or redirects without being seen.
+- Kine implements the etcd API, so that the K3s components think that they are talking to the etcd as always, and on the other side kine translates those calls into SQL queries that SQLite can understand.
+- SQLite is only suitable for single-node setups. For high-availability K3s clusters, external databases like PostgreSQL , MySQL or even etcd are way better.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                  K3s SERVER (Master Node)                │
+│                                                          │
+│  ┌─────────────┐  ┌───────────┐  ┌────────────────────┐  │
+│  │  API Server │  │ Scheduler │  │ Controller Manager │  │
+│  └──────┬──────┘  └───────────┘  └────────────────────┘  │
+│         │                                                │
+│         │  "hey etcd, store this!"                       │
+│         ▼                                                │
+│  ┌──────────────────────────────────────────────────┐    │
+│  │                KINE  (etcd shim)                 │    │
+│  │                                                  │    │
+│  │  receives etcd API calls  ──►  translates to SQL │    │
+│  └───────────────────────────────────┬──────────────┘    │
+│                                      │                   │
+│                                      ▼                   │
+│                             ┌─────────────────┐          │
+│                             │     SQLite      │          │
+│                             │   (database)    │          │
+│                             └─────────────────┘          │
+└──────────────────────────────────────────────────────────┘
+                            |
+                            │ manages
+                            ▼
+┌──────────────────────────────────────────────────────────┐
+│                  K3s AGENT (Worker Node)                 │
+|                           (...)                          |
+└──────────────────────────────────────────────────────────┘
+
+```
+
+## TUNEL PROXY
+
+- in K8s, the protocol used to make the comuniation between master node and worker node is via *K8 Konnectivity*(default).
+- Tunnel Proxy is good because it facilitates the comunication between server and agents that are behind firewalls and NAT(Network Address Translation)
+- Without tunnel proxy the agent had to have the port always open so that it could communicate with the server(that would never happen, so the servwr could never reach it).
+- K3s was created to handle IoT(Internet Of Things) and edge(is a distributed computing model that tries to bring computation and data storage closer to the source of data)
+- K3s is used to reduce the need of central data centers.
+- the clusters in real life cases are usually physically remote, so that tunnel proxy is needed to maintain the comunication between the node workers that are behind NAT/Firewalls and the Server Node .
+-  Tunnel proxy tries to make a comunication to the K3s Server, and tells the server that if it whants to comunicate with the worker, it will have to use the same line that the tunnel proxy opened to talk to the server. -> this works because the agent is the one starting the connection, and that connectionstays open. that way the server is able to send watever it needs
