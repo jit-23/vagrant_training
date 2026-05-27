@@ -349,10 +349,9 @@ Now that we saw a little about k8s, we are ready to talk about K3s
 - K3s also abandon a lot of optional features to optimize the kubernetes eficience.
 
 ### Advantages
-
-	- Minimal resource consumption  - can run on devices like raspBerry PI and single-board computers
-	- Extremely simple installation - often just a single command to get the cluster running
-	- Fully compatible with kubernetes - use existing tools, API's and workflows without adjustments
+	- Minimal resource consumption                -> can run on devices like raspBerry PI and single-board computers
+	- Extremely simple installation               -> often just a single command to get the cluster running
+	- Fully compatible with kubernetes            -> use existing tools, API's and workflows without adjustments
 	- Ideal for IoT, Edge, and test environments
 	- Automated updates and maintenance
 ### Disadvantages
@@ -361,7 +360,6 @@ Now that we saw a little about k8s, we are ready to talk about K3s
 	- SQLite becomes insufficient quickly inder higher loads
 	- Some cloud-native add-ons and tools work in a limited way
 	- May require manual tunning in high-performance scenarios
-
 
 # K3s architecture
 
@@ -374,7 +372,7 @@ The K3s Server(Master Node)  and the K3s Agent(Worker Node)
 
 
 K3s server and the K8s master node are very similar:
-K3s has 3 diferent components if we compare it with K8s
+However K3s has 3 diferent components if we compare it with K8s
 *Like*:
 - Kine
 - Tunnel Proxy
@@ -382,7 +380,7 @@ K3s has 3 diferent components if we compare it with K8s
 
 ## KINE:
 
-- It does not have etcd; instead it uses SQLite, a much simpler relational database. However, since etcd comunicates using **etcd gRPC API** while SQLite uses **SQL**, Kine acts as the intermediary to translate everything so that SQLite receives the correct data.
+- K3s by default does not have etcd; instead it uses SQLite, a much simpler relational database. However, since etcd comunicates using **etcd gRPC API** while SQLite uses **SQL**, Kine acts as the intermediary to translate everything so that SQLite receives the correct data.
 - Kine is an etcd shim built into K3s. a Shim in computer science is a small library that intercepts requests and modifies or redirects without being seen.
 - Kine implements the etcd API, so that the K3s components think that they are talking to the etcd as always, and on the other side kine translates those calls into SQL queries that SQLite can understand.
 - SQLite is only suitable for single-node setups. For high-availability K3s clusters, external databases like PostgreSQL , MySQL or even etcd are way better.
@@ -422,9 +420,65 @@ K3s has 3 diferent components if we compare it with K8s
 ## TUNEL PROXY
 
 - in K8s, the protocol used to make the comuniation between master node and worker node is via *K8 Konnectivity*(default).
-- Tunnel Proxy is good because it facilitates the comunication between server and agents that are behind firewalls and NAT(Network Address Translation)
+- Tunnel Proxy is good because it allows the comunication between server and agents that are behind firewalls and NAT(Network Address Translation)
 - Without tunnel proxy the agent had to have the port always open so that it could communicate with the server(that would never happen, so the servwr could never reach it).
-- K3s was created to handle IoT(Internet Of Things) and edge(is a distributed computing model that tries to bring computation and data storage closer to the source of data)
+- K3s was created to handle IoT(Internet Of Things) and edge(distributed computing model that tries to bring computation and data storage closer to the source of data)
 - K3s is used to reduce the need of central data centers.
-- the clusters in real life cases are usually physically remote, so that tunnel proxy is needed to maintain the comunication between the node workers that are behind NAT/Firewalls and the Server Node .
--  Tunnel proxy tries to make a comunication to the K3s Server, and tells the server that if it whants to comunicate with the worker, it will have to use the same line that the tunnel proxy opened to talk to the server. -> this works because the agent is the one starting the connection, and that connectionstays open. that way the server is able to send watever it needs
+- the clusters in real life cases are usually physically remote, so a tunnel proxy is needed to maintain the comunication between the node workers that are behind NAT/Firewalls and the Server Node .
+- Because the server cannot initiate a connection to the agent, it is the agent that stablishes a WebSocket connection to the server. This connection remains open, and the server reuses this same connection to send messages back to the agent, enabling bidirectional communication over a single, agent-initiated channel
+
+
+## FLANNEL
+
+>  - **Flannel** is a lightweight provider of Layer 3 Network(search for L1,L2,L3 in network) fabric that implements the Kubernetes Container Network Interface(CNI), usually referred as CNI Plugin.
+> - **Flannel** as a CNI plugin **can** be used in k8s, but it has to be pre-defined in k3s it comes automatically.\
+> - In a node, each Pod has its own IP, so inside the Node they can communicate with each other. However, when there are multiple Nodes across machines with their own network interfaces, there is no possiblility of comunication. Thats where Flannel enters.
+> - **Flannel** assigns each node a subnet carved out of the cluster pod CIDR (default 10.42.0.0/16 in k3s) 
+> - **CIDR** (Classless inter-Domain Routing) is a flexible method for allocating IP addresses and routing trafic on the internet
+
+
+
+
+## What Flannel Does in k3s
+
+> **TL;DR** -> Flannel makes Pods on **different nodes** able to talk to each other.
+
+
+### Key Concepts 
+
+| Term | Explanation|
+|-|-|
+| `cni0` |  **bridge interface** **--** connects all local pods on the same node 
+| `flannel.1` | **VXLAN tunnel interface** **--** the **exit door** to other nodes 
+| `VLAN` | **Virtual LAN** **--** logical grouping of devices within a network that allows them to communicate  as if they  are on the same local Network, even if they are  physically  connected  to different  switches 
+| `VXLAN` | **Virtual Extensible LAN** **--** VXLAN(Virtual Extensible LAN) is a network virtualization technology that uses a VLAN-like encapsulation technique to put Layer 2 (Ethernet) frames inside UDP/IP packets, so traffic that normally only works on a local network can travel across a larger IP network(Layer 3) 
+<br>
+## How it looks inside the cluster
+
+```
+   #===============================#     #==============================#
+   |          NODE A               |     |          NODE B              |
+   |                               |     |                              |
+   |   [Pod 1]      [Pod 2]        |     |   [Pod 3]      [Pod 4]       |
+   |  10.42.0.2    10.42.0.3       |     |  10.42.1.2    10.42.1.3      |
+   |      |            |           |     |      |            |          |
+   |      +-----+------+           |     |      +-----+------+          |
+   |            |                  |     |            |                 |
+   |        [ cni0 ]               |     |         [ cni0 ]             |
+   |            |                  |     |            |                 |
+   |       [flannel.1]             |     |       [flannel.1]            |
+   |            |                  |     |            |                 |
+   #===============================#     #==============================#
+                |                                     |
+                |        REAL physical network        |
+                |     (normal node-to-node link)      |
+                +------------------+------------------+
+                                   |
+                                   v
+        Flannel WRAPS the pod packet inside a normal UDP packet
+        (this is "VXLAN encapsulation") and sends it to the other
+        node, which UNWRAPS it and hands it to the right pod.
+```
+
+----
+
