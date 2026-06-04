@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app2
+  template:
+    metadata:
+      labels:
+        app:  app2
+    spec:
+      containers:
+      - name: app2
+        image: paulbouwer/hello-kubernetes:1.10 # not recomended to use latest usually, in this case we  will not use it bcs this image probably does not  have a latest tag
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MESSAGE
+          value: "Hello from app2."
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app2-service
+  labels:
+    app: app2-service
+spec:
+  selector:
+    app: app2
+  ports:
+  - port: 80 # port available to the cluster that later will the displayed in the ingress
+    name: http
+    targetPort: 8080 # port on the container
+  - port: 443
+    name: https
+    targetPort: 8080

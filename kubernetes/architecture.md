@@ -482,3 +482,5 @@ However K3s has 3 diferent components if we compare it with K8s
 
 ----
 
+# How to acess the cluster via CLI
+
