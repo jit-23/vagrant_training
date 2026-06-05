@@ -5,9 +5,9 @@
 
 ## kubectl installation ##
 
-#curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-#chmod +x kubectl
-#mv kubectl /usr/local/bin/kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+mv kubectl /usr/local/bin/kubectl
 
 
 mkdir -p ~/.kube
@@ -21,18 +21,20 @@ echo "127.0.0.1 app.com" | sudo tee -a /etc/hosts
 
 ## k3d installation ##
 
-#apt update && apt upgrade
-#apt install curl
-#curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+apt update && apt upgrade
+apt install curl
+curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
 ## argoCD install ##
 echo "kubectl create namespace argocd" 
 
 kubectl create namespace argocd
-kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl create namespace dev
+sudo kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 ## k3d configuration ##
 
 
 
 ## sudo kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d ; echo
+## kubectl port-forward svc/argocd-server -n argocd 8080:443
