@@ -53,6 +53,17 @@ if ! command -v k3d &>/dev/null; then
     echo "k3d installed."
 fi
 
+## KUBECONFIG ##
+
+mkdir -p ~/.kube
+chown -R $USER:$USER ~/.kube
+
+if [ ! -f  "$HOME/.kube/config" ]; then
+    echo "Setting up kubeconfig..."
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+fi
+
 ## K3d cluster ##
 
 if ! k3d cluster list | grep -q "mycluster"; then
@@ -60,11 +71,6 @@ if ! k3d cluster list | grep -q "mycluster"; then
     k3d cluster create --config K3dConfig.yaml
     echo "k3d cluster created."
 fi
-
-## KUBECONFIG ##
-
-mkdir -p ~/.kube
-k3d kubeconfig merge mycluster --kubeconfig-merge-default
 
 ## argoCD install ##
 if ! kubectl get namespace argocd &>/dev/null; then
@@ -88,4 +94,7 @@ sudo kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.dat
 
 echo "Port forwarding ArgoCD server to localhost:8000"
 kubectl port-forward svc/argocd-server -n argocd 8000:443
+
+
+## argocd configuration ##
 
