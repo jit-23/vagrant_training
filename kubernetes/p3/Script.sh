@@ -137,6 +137,7 @@ argocd app create playground \
 
 ## SYNC APP ##
 argocd app sync playground
+argocd app set playground --sync-policy automated
 
 ## HEALTH CHECK ##
 argocd app wait playground --health
