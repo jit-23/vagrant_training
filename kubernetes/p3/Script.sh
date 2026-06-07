@@ -77,16 +77,6 @@ if ! k3d cluster list | grep -q "mycluster"; then
     echo "k3d cluster created."
 fi
 
-<<<<<<< HEAD
-=======
-## KUBECONFIG ##
-
-mkdir -p ~/.kube
-k3d kubeconfig merge mycluster --kubeconfig-merge-default
-
-
-
->>>>>>> 5e08b07510286e42dc9e49c264159317b64442c8
 ## argoCD install ##
 if ! kubectl get namespace argocd >/dev/null 2>&1; then
     echo "${GREEN}Installing argoCD...${END}"
