@@ -77,6 +77,16 @@ if ! k3d cluster list | grep -q "mycluster"; then
     echo "k3d cluster created."
 fi
 
+<<<<<<< HEAD
+=======
+## KUBECONFIG ##
+
+mkdir -p ~/.kube
+k3d kubeconfig merge mycluster --kubeconfig-merge-default
+
+
+
+>>>>>>> 5e08b07510286e42dc9e49c264159317b64442c8
 ## argoCD install ##
 if ! kubectl get namespace argocd >/dev/null 2>&1; then
     echo "${GREEN}Installing argoCD...${END}"
@@ -141,7 +151,8 @@ argocd app create playground \
     --repo https://github.com/jit-23/playground.git \
     --path . \
     --dest-server https://kubernetes.default.svc \
-    --dest-namespace default
+    --dest-namespace dev \
+    --upsert
 
 ## SYNC APP ##
 argocd app sync playground
@@ -149,3 +160,14 @@ argocd app set playground --sync-policy automated
 
 ## HEALTH CHECK ##
 argocd app wait playground --health
+
+## PORT FORWARD APP ##
+kubectl port-forward svc/playground 8888:8888 -n dev 
+
+until nc -z localhost 8888 2>/dev/null; do
+        sleep 1
+done
+echo "${GREEN}App available at http://localhost:8888${END}"
+
+# -> cmd bellow is to show the endpoints like in the subject image
+#kubectl edit cm argocd-cm -n argocd
