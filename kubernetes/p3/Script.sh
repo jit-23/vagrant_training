@@ -71,6 +71,8 @@ fi
 mkdir -p ~/.kube
 k3d kubeconfig merge mycluster --kubeconfig-merge-default
 
+
+
 ## argoCD install ##
 if ! kubectl get namespace argocd >/dev/null 2>&1; then
     echo "${GREEN}Installing argoCD...${END}"
@@ -103,9 +105,7 @@ echo "${GREEN}User${END}: admin"
 echo "${GREEN}Password${END}: ${PASS}"
 
 echo "Port forwarding ArgoCD server to localhost:8000"
-#kubectl port-forward svc/argocd-server -n argocd 8000:443 
-# the line below is for the argcd to run on the background, not very usefull on development
-nohup kubectl port-forward svc/argocd-server -n argocd 8000:443 &
+kubectl port-forward svc/argocd-server -n argocd 8000:443 &
 
 until nc -z localhost 8000 2>/dev/null; do
     sleep 1
@@ -133,7 +133,8 @@ argocd app create playground \
     --repo https://github.com/jit-23/playground.git \
     --path . \
     --dest-server https://kubernetes.default.svc \
-    --dest-namespace default
+    --dest-namespace dev \
+    --upsert
 
 ## SYNC APP ##
 argocd app sync playground
@@ -141,3 +142,14 @@ argocd app set playground --sync-policy automated
 
 ## HEALTH CHECK ##
 argocd app wait playground --health
+
+## PORT FORWARD APP ##
+kubectl port-forward svc/playground 8888:8888 -n dev 
+
+until nc -z localhost 8888 2>/dev/null; do
+        sleep 1
+done
+echo "${GREEN}App available at http://localhost:8888${END}"
+
+# -> cmd bellow is to show the endpoints like in the subject image
+#kubectl edit cm argocd-cm -n argocd
