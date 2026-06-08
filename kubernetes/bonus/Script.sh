@@ -2,8 +2,8 @@
 
 set -e
 
-GREEN="\e[32m"
-END="\e[0m"
+GREEN='\e[32m'
+END='\e[0m'
 
 
 
@@ -58,26 +58,21 @@ if ! command -v k3d >/dev/null 2>&1; then
     echo "k3d installed."
 fi
 
-## KUBECONFIG ##
-
-mkdir -p ~/.kube
-chown -R $USER:$USER ~/.kube
-
-if [ ! -f  "$HOME/.kube/config" ]; then
-    echo "Setting up kubeconfig..."
-    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-    sudo chown $(id -u):$(id -g) $HOME/.kube/config
-fi
-
 ## K3d cluster ##
 
 if ! k3d cluster list | grep -q "mycluster"; then
     echo "${GREEN}Creating k3d cluster...${END}"
-    k3d cluster create --config K3dConfig.yaml
+    k3d cluster create --config "$(dirname "$0")/K3dConfig.yaml"
     echo "k3d cluster created."
 fi
 
+## KUBECONFIG ##
+
+mkdir -p ~/.kube
+k3d kubeconfig merge mycluster --kubeconfig-switch-context
+
 ## argoCD install ##
+#if ! command -v argocd >/dev/null 2>&1; then
 if ! kubectl get namespace argocd >/dev/null 2>&1; then
     echo "${GREEN}Installing argoCD...${END}"
     kubectl create namespace argocd
@@ -85,6 +80,7 @@ if ! kubectl get namespace argocd >/dev/null 2>&1; then
     echo "argoCD installed."
 fi
 
+#if ! command -v argocd >/dev/null 2>&1; then
 if ! kubectl get namespace dev >/dev/null 2>&1; then
     echo "${GREEN}Creating dev namespace...${END}"
     kubectl create namespace dev
@@ -99,10 +95,8 @@ until kubectl get secret argocd-initial-admin-secret -n argocd >/dev/null 2>&1; 
     sleep 5
 done
 
-until kubectl get pod -n argocd -l app.kubernetes.io/name=argocd-server --field-selector=status.phase=Running 2>/dev/null | grep -q Running; do
-    echo "${GREEN}Waiting for ArgoCD server pod to be Running...${END}"
-    sleep 5
-done
+echo "${GREEN}Waiting for ArgoCD server pod to be Ready...${END}"
+kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
 
 PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 echo "${GREEN}CREDENTIALS${END}"
@@ -129,35 +123,60 @@ if ! command -v argocd >/dev/null 2>&1; then
 fi
 
 
-## DEPLOYING APP THROUGH ARGOCD CLI ##
-
-## LOGIN ##
-argocd login localhost:8000 --insecure --username admin --password "${PASS}"
-echo "${GREEN}LOGGED ON ARGOCD${END}"
-
-## CREATING APP ##
-
-argocd app create playground \
-    --repo https://github.com/jit-23/playground.git \
-    --path . \
-    --dest-server https://kubernetes.default.svc \
-    --dest-namespace dev \
-    --upsert
-
-## SYNC APP ##
-argocd app sync playground
-argocd app set playground --sync-policy automated
-
-## HEALTH CHECK ##
-argocd app wait playground --health
-
-## PORT FORWARD APP ##
-kubectl port-forward svc/playground 8888:8888 -n dev 
-
-until nc -z localhost 8888 2>/dev/null; do
-        sleep 1
-done
-echo "${GREEN}App available at http://localhost:8888${END}"
-
-# -> cmd bellow is to show the endpoints like in the subject image
-#kubectl edit cm argocd-cm -n argocd
+### DEPLOYING APP THROUGH ARGOCD CLI ##
+#
+### LOGIN ##
+#argocd login localhost:8000 --insecure --username admin --password "${PASS}"
+#echo "${GREEN}LOGGED ON ARGOCD${END}"
+#
+### CREATING APP ##
+#
+#argocd app create playground \
+#    --repo https://github.com/jit-23/playground.git \
+#    --path . \
+#    --dest-server https://kubernetes.default.svc \
+#    --dest-namespace dev \
+#    --upsert
+#
+### SYNC APP ##
+#argocd app sync playground
+#argocd app set playground --sync-policy automated
+#
+### HEALTH CHECK ##
+#argocd app wait playground --health
+#
+### PORT FORWARD APP ##
+#kubectl port-forward svc/playground 8888:8888 -n dev 
+#
+#until nc -z localhost 8888 2>/dev/null; do
+#        sleep 1
+#done
+#echo "${GREEN}App available at http://localhost:8888${END}"
+#
+## -> cmd bellow is to show the endpoints like in the subject image
+##kubectl edit cm argocd-cm -n argocd
+#
+#echo -e "${GREEN}##---------------------------------------------------------------------##${END}"
+#echo -e "${GREEN}## installing all the dependencies to make GITLABS work on the cluster ##${END}"
+#echo -e "${GREEN}##---------------------------------------------------------------------##${END}"
+#
+### GLAB ## 
+#
+#
+#
+#if ! command -v glab >/dev/null 2>&1; then
+#    echo "${GREEN}Installing glab CLI...${END}"
+#    curl -sSL "https://raw.githubusercontent.com/upciti/wakemeops/main/assets/install_repository" | sudo bash
+#    sudo apt install glab    
+#    echo "${GREEN}glab CLI installed.${END}"
+#fi
+#
+### HELM ##
+#
+#if ! command -v helm >/dev/null 2>&1; then
+#    echo "${GREEN}Installing Helm...${END}"
+#    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash  
+#    echo "${GREEN}Helm installed.${END}"
+#fi
+#
+### GITLABS ##
