@@ -58,16 +58,6 @@ if ! command -v k3d >/dev/null 2>&1; then
     echo "k3d installed."
 fi
 
-## KUBECONFIG ##
-
-mkdir -p ~/.kube
-chown -R $USER:$USER ~/.kube
-
-if [ ! -f  "$HOME/.kube/config" ]; then
-    echo "Setting up kubeconfig..."
-    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-    sudo chown $(id -u):$(id -g) $HOME/.kube/config
-fi
 
 ## K3d cluster ##
 
