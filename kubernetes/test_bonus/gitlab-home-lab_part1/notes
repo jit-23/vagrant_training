@@ -1,0 +1,25 @@
+this is only a CE gitlabs over HTTP
+very simple and direct
+
+ssh doesnt work:
+Port 22 isn't exposed, so git clone git@... won't work — only HTTP cloning.
+
+no htts:
+Traffic over port 8080 is plain HTTP
+
+No SMTP/email:
+No mail server configured, so password resets, notifications, and CI alerts won't send emails.
+
+No resource limits:
+No CPU/memory limits set. GitLab CE is heavy (~4GB RAM at idle) and can starve the host.
+
+No backup:
+Data lives in Docker named volumes with no automated backup strategy.
+
+NO runner:
+There's no GitLab Runner container, so CI/CD pipelines have nowhere to execute.
+
+Single node, no HA
+Everything (Postgres, Redis, Gitaly, Puma, Sidekiq) runs inside one container. No redundancy.
+
+For a home lab it's fine, but the two most immediately impactful missing pieces are usually SSH port exposure and a GitLab Runner for CI/CD.

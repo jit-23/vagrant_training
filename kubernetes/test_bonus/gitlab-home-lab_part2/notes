@@ -1,0 +1,41 @@
+this dir will be adding more things to the gitlab-home-lab part1
+
+In this part we will secure the lab with HTTPS using  Secure Sockets Layer(SSL)
+NOTE:
+SSL is a cryptographic tool that make connections private.
+SSL outdated predecessor to TLS
+HTTPS uses TLS 
+
+in this part we will add a script to add all the tools needed, per ex OpenSSL
+
+also add a domain name for the gitlabs-server
+ 
+1 - Generating a SSL Certificates with SAN (Subject Alternative Name)
+    In this step, we’ll generate an SSL certificate that includes both the
+    server’s IP address and our custom domain name using the
+    Subject Alternative Name (SAN) field.
+
+create a file named -> "openssl.cnf"
+
+and add the following information 
+
+```
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_ca
+prompt = no
+
+[req_distinguished_name]
+countryName = MA
+stateOrProvinceName = Casablanca
+localityName = Casablanca
+organizationName = YasserElKhayati
+commonName = gitlab.yasserelkhayati.com
+
+[v3_ca]
+subjectAltName = IP:127.0.0.1,DNS:gitlab.fernando.com
+```
+
+this command : openssl req -x509 -nodes -days 365 -newkey rsa:8080 -keyout gitlab.fernando.com.key -out gitlab.fernando.com.crt -config openssl.cnf
+
+will create all the certs

@@ -1,0 +1,6 @@
+# part3 of the gitlab-home-lab SAGA
+now that we have a gitlabs with a domain and HTTPS comunication
+we are going to implement gitlabs runners
+
+## Gitlab Runner 
+Gitlab Runner is an application that works with GitLab CI/CD to run jobs in a pipeline. When developers push code to GitLab, they can define automated tasks.
