@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitlab
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-data
+  namespace: gitlab
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi          # repos + bundled DB live here
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate           # RWO volume: never run 2 pods at once
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      containers:
+        - name: gitlab
+          image: gitlab/gitlab-ce:latest
+          env:
+            - name: GITLAB_OMNIBUS_CONFIG
+              value: |
+                external_url 'http://gitlab.gitlab.svc.cluster.local'
+                puma['worker_processes'] = 2          # trim RAM
+                sidekiq['max_concurrency'] = 5
+                prometheus_monitoring['enable'] = false
+                gitlab_rails['initial_root_password'] = 'changeme123'
+          ports:
+            - containerPort: 80
+            - containerPort: 22
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/gitlab
+          readinessProbe:                # omnibus boots SLOW — be generous
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 180
+            periodSeconds: 15
+            failureThreshold: 30
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: gitlab-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  selector:
+    app: gitlab
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: ssh
+      port: 22
+      targetPort: 22

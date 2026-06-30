@@ -1,0 +1,45 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: gitlab # name of the deployment
+  namemespace: gitlab # where the deployment will be deployed
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate 
+  selector: # select pods with label "app: gitlab"
+    matchLabels:
+      app: gitlab 
+  template: # template for the pods
+    metadata: # metadata for the pods
+      labels: 
+        app: gitlab # label for the pods
+    spec: # spec for the pods
+      containers: 
+        - name: gitlab
+          image: gitlab/gitlab-ce:latest 
+          env:
+            - name: GITLAB_OMNIBUS_CONFIG
+              value: |
+                external_url 'http://gitlab.gitlab.svc.cluster.local'
+                puma['worker_processes'] = 2
+                sidekiq['max_concurrency'] = 5
+                prometheus_monitoring['enable'] = false
+                gitlab_rails['initial_root_password'] = 'changeme123'   
+          ports:
+            - containerPort: 80
+            - containerPort: 22
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/gitlab
+          readinessProbe: # check if the pod is ready
+            httpGet:
+              path: /users/sign_in # /var/opt/gitlab is not ready until the web interface is up
+              port: 80
+            initialDelaySeconds: 180 # wait 3 minutes before checking
+            periodSeconds: 15 # check every 15 seconds
+            failureThreshold: 30 # fail after 30 attempts
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: gitlab-data # use the PVC created in gitlab-PVC.yaml

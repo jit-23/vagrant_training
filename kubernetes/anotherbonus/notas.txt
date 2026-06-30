@@ -1,0 +1,42 @@
+-> ter o helm ativo
+->  instalar o gitlab por helm no namespace correto
+-> meter o url do gitlabs certo no argocd
+
+
+-> para instalar gitlbas, preciso de registar no helm o repositiorio em  questao, 
+
+$> helm repo add gitlab http://charts.gitlab.io/
+
+the "gitlab" is the alias that i give to the repo from http://charts.gitlab.io/
+
+the http://charts.gitlab.io/ is where i get the repo (this one i took it from https://artifacthub.io/packages/helm/gitlab/gitlab)
+
+-> to know what is the name of the dir where the chart is inside of the repo, we need to use the following command:
+
+$> helm search repo gitlab
+-> this command will give me all the chart names.
+-> now we look for the one that is more convenient for us, in this case it will be gitlab/gitlab
+
+
+-> forget about the helm, installing gitlab from helm charts will be complicated, because it will ask for a external redis/postgress or object storage
+that is very resource heavy, so it is WAY more convenient to use a docker image of gitlab-ce in a yaml and use kubectl apply -f 
+
+this yaml will have the nammespace(folder) , PVC(persisten volume claim), deploy, service in it
+
+the namesapce folder :
+
+apiVersion: v1
+kind : namespace
+metadata:
+	name: gitlab 
+
+
+####
+### sudo kubectl logs -n gitlab gitlab-66fcc55455-l68s4 --previous --tail=120
+ IMPORTANT TO KNOW HOW TO READ LOGS THO	
+
+ ####
+ ### # sudo kubectl port-forward -n gitlab svc/gitlab 8082:80
+	this command is very important, because after the pods became ready, the app will be inside of the cluster in its internal network
+	this command exports the app INSIDE of the cluster to our Machine(localhost)
+ ###

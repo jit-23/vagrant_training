@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: PersistenVolumeClaim
+metadata:
+  name: gitlab-data
+  namespace: gitlab
+specs:
+  acessModes: ["ReadWriteOnce"] # go to https://zesty.co/finops-glossary/kubernetes-persistent-volume-claim/
+  resources:
+    requests:
+      storage: 10Gi
