@@ -1,0 +1,79 @@
+# Credentials and database name used both by Postgres itself and by GitLab to connect to it
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: microservice
+type: Opaque
+stringData:
+  POSTGRES_USER: gitlab
+  POSTGRES_PASSWORD: gitlab-postgres-pass
+  POSTGRES_DB: gitlabhq_production
+---
+# Headless service (clusterIP: None) giving Postgres a stable DNS name for the StatefulSet pod
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: microservice
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# Runs Postgres as a StatefulSet so it keeps a stable identity and its own dedicated volume
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: microservice
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          # Loads POSTGRES_USER/PASSWORD/DB from the secret above
+          envFrom:
+            - secretRef:
+                name: postgres-secret
+          env:
+            # Store data in a subdirectory so the mounted volume's lost+found dir doesn't break initdb
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          # Both probes just check that Postgres is accepting connections
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "gitlab"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "gitlab"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+  # Provisions a dedicated PersistentVolumeClaim per pod (postgres-data-postgres-0, etc.)
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
